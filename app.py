@@ -1,6 +1,8 @@
+from os import abort
+
 from flask import Flask, request, render_template, send_from_directory
 # from functions import ...
-from lesson13_project_source.functions import get_tags, read_json
+from lesson13_project_source.functions import get_tags, read_json, get_posts_by_tag, add_post
 
 POST_PATH = "posts.json"
 UPLOAD_FOLDER = "uploads/images"
@@ -15,12 +17,34 @@ def page_index():
 
 @app.route("/tag")
 def page_tag():
-    pass
+    tag = request.args.get('tag')
+    if not tag:
+        abort(400)
+    data = read_json(POST_PATH)
+    posts = get_posts_by_tag(data, tag)
+    return render_template("post_by_tag.html", tag=tag, posts=posts)
 
 
 @app.route("/post", methods=["GET", "POST"])
 def page_post_create():
-    pass
+    if request.method == "GET":
+        return render_template('post_form.html')
+
+    content = request.form.get('content')
+    picture = request.files.get('picture')
+    if not content or not picture:
+        abort(400)
+
+    path = f'{UPLOAD_FOLDER}/{picture.filename}'
+    post = {
+        'content': content,
+        'pic': f'/{path}'
+    }
+
+    picture.save(path)
+    add_post(POST_PATH, post)
+
+    return render_template('post_uploaded.html', post=post)
 
 
 @app.route("/uploads/<path:path>")
@@ -29,4 +53,3 @@ def static_dir(path):
 
 
 app.run()
-
